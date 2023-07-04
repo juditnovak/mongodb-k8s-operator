@@ -670,7 +670,18 @@ class MongoDBCharm(CharmBase):
                 return
             self.app_peer_data.update({key: value})
         else:
-            raise RuntimeError("Unknown secret scope.")
+            raise RuntimeError("Unknown secret scope {scope}.")
+
+        # DEBUGGING: keeping track of the last app-level 'cert-secret' value
+        if scope == "app" and key == "cert":
+            old_cert = self.get_secret("app", "cert")
+            if old_cert:
+                self.app_peer_data.update({"hidden_corner_to_save_previous_cert": old_cert})
+
+        if scope == "app" and key == "key":
+            old_key = self.get_secret("app", "key")
+            if old_key:
+                self.app_peer_data.update({"hidden_corner_to_save_previous_key": old_key})
 
     def restart_mongod_service(self):
         """Restart mongod service."""

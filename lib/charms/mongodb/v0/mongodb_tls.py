@@ -38,6 +38,12 @@ LIBPATCH = 5
 logger = logging.getLogger(__name__)
 TLS_RELATION = "certificates"
 
+CA_LABEL = "ca"
+KEY_LABEL = "key"
+CERT_LABEL = "cert"
+CSR_LABEL = "csr"
+CHAIN_LABEL = "chain"
+
 
 class MongoDBTLS(Object):
     """In this class we manage client database relations."""
@@ -91,6 +97,18 @@ class MongoDBTLS(Object):
             sans=self._get_sans(),
             sans_ip=[str(self.charm.model.get_binding(self.peer_relation).network.bind_address)],
         )
+        if scope == "app":
+            logging.info(
+                f"******************* About to remove {scope}:{CERT_LABEL} **********************"
+            )
+            logging.info(
+                "******************* Old value was "
+                f"{self.charm.get_secret(scope, CERT_LABEL)} **********************"
+            )
+            logging.info(
+                "******************* Old private key {scope}:{KEY_LABEL} was "
+                f"{self.charm.get_secret(scope, KEY_LABEL)} **********************"
+            )
 
         self.charm.set_secret(scope, "key", key.decode("utf-8"))
         self.charm.set_secret(scope, "csr", csr.decode("utf-8"))
@@ -167,6 +185,28 @@ class MongoDBTLS(Object):
             self.charm.set_secret(
                 scope, "chain", "\n".join(event.chain) if event.chain is not None else None
             )
+            if scope == "app":
+                logging.info(
+                    f"***** Currently {scope}:{CERT_LABEL} is "
+                    f"{self.charm.get_secret('app', CERT_LABEL)} *****"
+                )
+                logging.info(
+                    f"***** Currently {scope}:{KEY_LABEL} is "
+                    f"{self.charm.get_secret('app', KEY_LABEL)} *****"
+                )
+                logging.info(
+                    f"***** New CERT value from event (requested with the key above): "
+                    f"{event.certificate} *****"
+                )
+                logging.info(
+                    f"***** The latest value of {scope}{CERT_LABEL} was: "
+                    f"{self.charm.app_peer_data.get('hidden_corner_to_save_previous_cert')} *****"
+                )
+                logging.info(
+                    f"***** with old key {scope}{KEY_LABEL} was: "
+                    f"{self.charm.app_peer_data.get('hidden_corner_to_save_previous_key')} *****"
+                )
+
             self.charm.set_secret(scope, "cert", event.certificate)
             self.charm.set_secret(scope, "ca", event.ca)
 
